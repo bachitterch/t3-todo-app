@@ -44,3 +44,24 @@ export const todoRouter = createRouter()
     }
   }
 })
+.mutation('updateTodo', {
+  input: z.object({
+    id: z.string(),
+    completed: z.boolean(),
+  }),
+  async resolve({ctx, input}) {
+    try {
+      await ctx.prisma.todo.update({
+        where: {
+          id: input.id
+        },
+        data: {
+          completed: input.completed,
+        }
+      })
+    } catch(error) {
+      console.error(error)
+    }
+
+  }
+})

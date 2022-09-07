@@ -3,14 +3,42 @@ import Head from "next/head";
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { getServerAuthSession } from "../server/common/get-server-auth-session";
 import { trpc } from '../utils/trpc'
+import { useState } from "react";
+
 
 const Home: NextPage = () => {
 
+  const [todo, setTodo] = useState('')
+
+  const ctx = trpc.useContext()
+
+  const createTodo = trpc.useMutation('todoscreateTodo', {
+    onMutate: () => {
+      ctx.cancelQuery(["todosgetTodos"])
+
+      let update = ctx.getQueryData(["todosgetTodos"])
+      if (update) {
+        ctx.setQueryData(["todosgetTodos"], update)
+      }
+    },
+    onSettled:() => {
+      ctx.invalidateQueries(["todosgetTodos"])
+    }
+  })
+
   const { data: todos } = trpc.useQuery(["todosgetTodos"]);
-
-    console.log(todos)
-
   const { data: session, status } = useSession()
+
+  const editTask = trpc.useMutation('todosupdateTodo', {
+    onMutate: ({ id, completed }) => {
+      ctx.cancelQuery(['todosgetTodos']);
+
+      const update = ctx.getQueryData(['todosgetTodos']);
+      if (update) {
+        ctx.setQueryData(["todosgetTodos"], update.map((t) => t.id === id ? { ...t, completed } : t ))
+      }
+      },
+  });
 
   if (status === "loading") {
     return <main>Loading...</main>;
@@ -31,11 +59,45 @@ const Home: NextPage = () => {
         <p>Signed in as {session?.user?.email} </p>
       <button className="bg-gray-200 px-3 py-2 rounded-lg" onClick={() => signOut()}>Sign Out</button>
 
+            <div className="pt-6">
+              <form
+                className="flex gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+
+                  createTodo.mutate({
+                    todo,
+                    completed: false
+                  });
+
+                  setTodo("");
+                }}
+              >
+                <input
+                  type="text"
+                  value={todo}
+                  placeholder="Your Todo..."
+                  maxLength={100}
+                  onChange={(event) => setTodo(event.target.value)}
+                  className="px-3 py-2 bg-gray-300 rounded-lg focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="bg-gray-200 px-3 py-2 rounded-lg focus:outline-none"
+                >
+                  Create Todo
+                </button>
+              </form>
+            </div>
+
             {todos?.map((todo, index) => {
         return (
           <div key={index}>
             <span>{todo.todo}</span> {' '}
-            <span>- {todo.completed ? 'true' : 'false'}</span>
+            <span>- {todo.completed ? 'true' : 'false'}</span> <button onClick={() => editTask.mutate({
+                    completed: todo.completed ? false : true,
+                    id: todo.id
+                  })}>Check</button>
           </div>
         );
       })}
