@@ -29,7 +29,7 @@ const Home: NextPage = () => {
   const { data: todos } = trpc.useQuery(["todosgetTodos"]);
   const { data: session, status } = useSession()
 
-  const editTask = trpc.useMutation('todosupdateTodo', {
+  const editTodo = trpc.useMutation('todosupdateTodo', {
     onMutate: ({ id, completed }) => {
       ctx.cancelQuery(['todosgetTodos']);
 
@@ -39,6 +39,18 @@ const Home: NextPage = () => {
       }
       },
   });
+
+  const deleteTodo = trpc.useMutation('todosdeleteTodo', {
+    onMutate: ({ id }) => {
+      ctx.cancelQuery(['todosgetTodos']);
+
+      const update = ctx.getQueryData(['todosgetTodos']);
+      if (update) {
+        ctx.setQueryData(["todosgetTodos"], update.filter((t) => t.id !== id ))
+      }
+      },
+  });
+
 
   if (status === "loading") {
     return <main>Loading...</main>;
@@ -92,13 +104,17 @@ const Home: NextPage = () => {
 
             {todos?.map((todo, index) => {
         return (
-          <div key={index}>
+          <div key={index} className="flex space-x-4">
             <span>{todo.todo}</span> {' '}
-            <span>- {todo.completed ? 'true' : 'false'}</span> <button onClick={() => editTask.mutate({
+             <button onClick={() => editTodo.mutate({
                     completed: todo.completed ? false : true,
                     id: todo.id
-                  })}>Check</button>
-          </div>
+                  })}>{todo.completed ? '✅' : '❌'}</button>
+          <button onClick={() => deleteTodo.mutate({
+                    id: todo.id
+                  })}>🗑️</button>
+
+                </div>
         );
       })}
       </div>
