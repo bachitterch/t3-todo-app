@@ -68,7 +68,7 @@ const Home: NextPage = () => {
         {
         session ? (
         <div className="flex flex-col space-y-4">
-        <p>Signed in as {session?.user?.email} </p>
+        <p>Signed in as {session?.user?.name} </p>
       <button className="bg-gray-200 px-3 py-2 rounded-lg" onClick={() => signOut()}>Sign Out</button>
 
             <div className="pt-6">
